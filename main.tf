@@ -93,9 +93,9 @@ locals {
 }
 
 module "docker" {
-  depends_on = [local_file.files]
-  source     = "app.terraform.io/DustinDortch/aws-lambda/docker"
-  version    = "~> 1.0"
+  # depends_on = [local_file.files]
+  source  = "app.terraform.io/DustinDortch/aws-lambda/docker"
+  version = "~> 1.0"
 
   name    = aws_ecr_repository.lambda.repository_url
   handler = var.handler
