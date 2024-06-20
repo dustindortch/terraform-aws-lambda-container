@@ -1,0 +1,42 @@
+---
+author: Dustin Dortch
+name: Terraform Init
+description: Initialize Terraform configuration modules, providers, and state
+
+inputs:
+  backend:
+    default: 'false'
+    description: 'Disable backend or HCP Terraform initialization for this configuration and use what was previously initialized instead.'
+    required: false
+  get:
+    default: 'false'
+    description: 'Disable downloading modules for this configuration.'
+    required: false
+  input:
+    default: 'false'
+    description: 'Disable interactive prompts. Note that some actions may require interactive prompts and will error if input is disabled.'
+    required: false
+  no-color:
+    default: 'true'
+    description: 'Disables color in output'
+    required: false
+  working-directory:
+    default: '.'
+    description: 'The directory to run Terraform commands in'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform Format
+      id: terraform_fmt
+      shell: bash
+      run: >
+        terraform
+        ${{ inputs.working-directory != '.' && join(fromJSON(format('["-chdir=","{0}"]', inputs.working-directory))) || '' }}
+        init
+        ${{ inputs.backend == 'false' && '-backend=false' || '' }}
+        ${{ inputs.get == 'false' && '-get=false' || '' }}
+        ${{ inputs.input == 'false' && '-input=false' || '' }}
+        ${{ inputs.no-color == 'true' && '-no-color' || '' }}
+...

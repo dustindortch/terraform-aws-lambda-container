@@ -1,0 +1,42 @@
+---
+author: Dustin Dortch
+name: Terraform Install
+description: Installs Terraform
+
+inputs:
+  terraform_version:
+    default: 'latest'
+    description: 'The version of Terraform to install'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Tfenv Install
+      id: tfenv_install
+      shell: bash
+      run: |
+        git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+        sudo ln -sf ~/.tfenv/bin/tfenv /usr/local/bin/tfenv
+
+    - name: Tfenv Version
+      id: tfenv_version
+      shell: bash
+      run: |
+        echo "TFENV_VERSION=$(tfenv --version | awk 'BEGIN { FS = " " } ; { print $2}')" >> $GITHUB_ENV
+
+    - name: Terraform Install
+      id: terraform_install
+      shell: bash
+      run: |
+        tfenv install ${{ inputs.terraform_version }}
+        tfenv use ${{ inputs.terraform_version }}
+
+
+    - name: Terraform Version
+      id: terraform_version
+      shell: bash
+      run: |
+        echo "TERRAFORM_VERSION=$(tfenv version-name)" >> $GITHUB_ENV
+
+...

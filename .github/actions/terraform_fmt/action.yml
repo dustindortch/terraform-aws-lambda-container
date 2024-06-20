@@ -1,0 +1,52 @@
+---
+author: Dustin Dortch
+name: Terraform Format
+description: Check Terraform configuration for idiomatic style formatting
+
+inputs:
+  check:
+    default: 'true'
+    description: 'Check if the input is formatted.  Exit status will be 0 if all input is properly formatted and non-zero otherwise.'
+    required: false
+  diff:
+    default: 'false'
+    description: 'Display diffs of formatting changes'
+    required: false
+  list:
+    default: 'true'
+    description: 'List files whose formatting differs'
+    required: false
+  no-color:
+    default: 'true'
+    description: 'Disables color in output'
+    required: false
+  recursive:
+    default: 'false'
+    description: 'Also process files in subdirectories.  By default, only the given directory (or current directory) is processed.'
+    required: false
+  working-directory:
+    default: '.'
+    description: 'The directory to run Terraform commands in'
+    required: false
+  write:
+    default: 'false'
+    description: 'Write changes to files in place'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform Format
+      id: terraform_fmt
+      shell: bash
+      run: >
+        terraform
+        ${{ inputs.working-directory != '.' && join(fromJSON(format('["-chdir=","{0}"]', inputs.working-directory))) || '' }}
+        fmt
+        ${{ inputs.check == 'true' && '-check' || '' }}
+        ${{ inputs.diff == 'true' && '-diff' || '' }}
+        ${{ inputs.no-color == 'true' && '-no-color' || '' }}
+        ${{ inputs.recursive == 'true' && '-recursive' || '' }}
+        -list=${{ inputs.list == 'true' && true || false }}
+        -write=${{ inputs.write == 'true' && true || false }}
+...

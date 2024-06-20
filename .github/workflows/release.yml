@@ -1,0 +1,47 @@
+---
+name: Release
+
+on:
+  # pull_request:
+  #   types:
+  #     - closed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  return-version:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get next version
+        id: next-version
+        uses: dustindortch/gha-generate-semver@v1
+
+      - name: Tag release
+        id: tag-release
+        run: |
+          release=${{ steps.next-version.outputs.new-version }}
+          username="$(git --no-pager log --format=format:'%an' -n 1)"
+          email=$(git --no-pager log --format=format:'%ae' -n 1)
+          git config --global user.name "${username}"
+          git config --global user.email "${email}"
+          git tag ${release} -m "Release ${release}"
+          git push --tags
+
+      - name: Cherry-pick release
+        uses: dustindortch/gha-cherry-pick-release-branch@v1
+        with:
+          tag: ${{ steps.next-version.outputs.new-version }}
+...

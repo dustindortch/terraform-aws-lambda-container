@@ -1,0 +1,42 @@
+---
+author: Dustin Dortch
+name: Terraform Validate
+description: Check Terraform configuration for syntax errors
+
+inputs:
+  json:
+    default: 'false'
+    description: 'Display diffs of formatting changes'
+    required: false
+  no-color:
+    default: 'true'
+    description: 'Disables color in output'
+    required: false
+  no-tests:
+    default: 'true'
+    description: 'Terraform will not validate test files'
+    required: false
+  test-directory:
+    default: 'tests'
+    description: 'Set the Terraform test directory, defaults to "tests".'
+    required: false
+  working-directory:
+    default: '.'
+    description: 'The directory to run Terraform commands in'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform Validate
+      id: terraform_validate
+      shell: bash
+      run: >
+        terraform
+        ${{ inputs.working-directory != '.' && join(fromJSON(format('["-chdir=","{0}"]', inputs.working-directory))) || '' }}
+        validate
+        ${{ inputs.json == 'true' && '-json' || '' }}
+        ${{ inputs.no-color == 'true' && '-no-color' || '' }}
+        ${{ inputs.no-tests == 'true' && '-no-tests' || '' }}
+        ${{ (inputs.test-directory != '' && inputs.no-tests == 'true') && join(fromJSON(format('["-test-directory={0}"]', inputs.test-directory))) || '' }}
+...

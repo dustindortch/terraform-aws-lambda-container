@@ -1,0 +1,98 @@
+---
+author: Dustin Dortch
+name: Terraform Plan
+description: Perform `terraform plan` operation
+
+inputs:
+  compact-warnings:
+    default: 'false'
+    description: 'If Terraform produces any warnings that are not accompanied by errors, shows them in a more compact form that includes only the summary messages.'
+    required: false
+  detailed-exitcode:
+    default: 'false'
+    description: 'Return detailed exit codes when the command exits. This will change the meaning of exit codes to:
+      0 - Succeeded, diff is empty (no changes)
+      1 - Errored
+      2 - Succeeded, there is a diff'
+    required: false
+  destroy:
+    default: 'false'
+    description: 'Select the "destroy" planning mode, which creates a plan to destroy all objects currently managed by this Terraform configuration instead of the usual behavior.'
+    required: false
+  github_token:
+    description: 'The GitHub token to use for commenting on the pull request'
+    required: true
+  json:
+    default: 'false'
+    description: 'Display diffs of formatting changes. Also generate a JSON plan file.'
+    required: false
+  no-color:
+    default: 'true'
+    description: 'Disables color in output'
+    required: false
+  output-file:
+    default: ''
+    description: 'Write the generated execution plan to the given file. This can be used as an input to the "apply" command.'
+    required: false
+  parallelism:
+    default: '10'
+    description: 'Limit the number of concurrent operations. Defaults to 10.'
+    required: false
+  pr-id:
+    default: 'false'
+    description: 'The pull request number'
+    required: false
+  refresh:
+    default: 'true'
+    description: 'When false, skip checking for external changes to remote objects while creating the plan. This can potentially make planning faster, but at the expense of possibly planning against a stale record of the remote system state.'
+    required: false
+  refresh-only:
+    default: 'false'
+    description: 'Select the "refresh only" planning mode, which checks whether remote objects still match the outcome of the most recent Terraform apply but does not propose any actions to undo any changes made outside of Terraform.'
+    required: false
+  working-directory:
+    default: '.'
+    description: 'The directory to run Terraform commands in'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform Plan
+      id: terraform_plan
+      shell: bash
+      run: >
+        echo 'PLAN<<EOF' >> $GITHUB_OUTPUT;
+        echo '# Terraform Plan' >> $GITHUB_OUTPUT;
+        echo '\`\`\`bash' >> $GITHUB_OUTPUT;
+        terraform
+        ${{ inputs.working-directory != '.' && format('-chdir={0}', inputs.working-directory) || '' }}
+        plan -input=false
+        ${{ inputs.compact-warnings == 'true' && '-compact-warnings' || '' }}
+        ${{ inputs.detailed-exitcode == 'true' && '-detailed-exitcode' || '' }}
+        ${{ inputs.no-color == 'true' && '-no-color' || '' }}
+        ${{ inputs.output-file != '' && format('-out={0}', inputs.output-file) || '' }}
+        -parallelism=${{ inputs.parallelism }} >> $GITHUB_OUTPUT;
+        echo '\`\`\`' >> $GITHUB_OUTPUT;
+        echo 'EOF' >> $GITHUB_OUTPUT
+
+    - name: JSON Artifact
+      id: json_artifact
+      if: inputs.json == 'true' && inputs.output-file != ''
+      shell: bash
+      run: |
+        terraform show -json tfplan > ${{ inputs.output-file }}.json
+
+    - name: GH Login
+      id: gh_login
+      shell: bash
+      run: gh auth login --with-token <<< ${{ inputs.github_token }}
+
+    - name: Plan Comment
+      id: plan_comment
+      if: inputs.pr-id != 'false'
+      shell: bash
+      run: |
+        BODY="${{ steps.terraform_plan.outputs.PLAN }}"
+        gh pr comment ${{ inputs.pr-id }} --body "$BODY"
+...

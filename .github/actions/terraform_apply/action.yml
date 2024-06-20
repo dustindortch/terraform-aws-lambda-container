@@ -1,0 +1,72 @@
+---
+author: Dustin Dortch
+name: Terraform Apply
+description: Perform `terraform apply` operation, or destroy.  *WARNING* All operations imply `-auto-approve` behavior.
+
+inputs:
+  compact-warnings:
+    default: 'false'
+    description: 'If Terraform produces any warnings that are not accompanied by errors, shows them in a more compact form that includes only the summary messages.'
+    required: false
+  destroy:
+    default: 'false'
+    description: 'Destroy Terraform-managed infrastructure.  Conflicts with `plan-file`.'
+    required: false
+  github_token:
+    description: 'The GitHub token to use for commenting on the pull request'
+    required: true
+  no-color:
+    default: 'true'
+    description: 'Disables color in output'
+    required: false
+  plan-file:
+    default: ''
+    description: 'Execute a pre-existing plan file.'
+    required: false
+  parallelism:
+    default: '10'
+    description: 'Limit the number of concurrent operations. Defaults to 10.'
+    required: false
+  pr-id:
+    default: 'false'
+    description: 'The pull request number'
+    required: false
+  working-directory:
+    default: '.'
+    description: 'The directory to run Terraform commands in.'
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform Apply
+      id: terraform_apply
+      shell: bash
+      run: >
+        echo 'APPLY<<EOF' >> $GITHUB_OUTPUT;
+        echo '# Terraform Apply' >> $GITHUB_OUTPUT;
+        echo '\`\`\`bash' >> $GITHUB_OUTPUT;
+        terraform
+        ${{ inputs.working-directory != '.' && format('-chdir={0}', inputs.working-directory) || '' }}
+        apply -input=false
+        ${{ inputs.compact-warnings == 'true' && '-compact-warnings' || '' }}
+        ${{ inputs.destroy == 'true' && inputs.plan-file == '' && '-destroy' || '' }}
+        ${{ inputs.no-color == 'true' && '-no-color' || '' }}
+        -parallelism=${{ inputs.parallelism }}
+        ${{ inputs.plan-file != '' && inputs.plan-file || '' }} >> $GITHUB_OUTPUT;
+        echo '\`\`\`' >> $GITHUB_OUTPUT;
+        echo 'EOF' >> $GITHUB_OUTPUT
+
+    - name: GH Login
+      id: gh_login
+      shell: bash
+      run: gh auth login --with-token <<< ${{ inputs.github_token }}
+
+    - name: Apply Comment
+      id: apply_comment
+      if: inputs.pr-id != 'false'
+      shell: bash
+      run: |
+        BODY="${{ steps.terraform_apply.outputs.APPLY }}"
+        gh pr comment ${{ inputs.pr-id }} --body "$BODY"
+...
