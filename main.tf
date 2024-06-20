@@ -8,59 +8,59 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
-    github = {
-      source  = "integrations/github"
-      version = "~> 6.0"
-    }
+    # github = {
+    #   source  = "integrations/github"
+    #   version = "~> 6.0"
+    # }
   }
 }
 
 provider "aws" {}
 
-provider "github" {}
+# provider "github" {}
 
-data "github_repository" "repo" {
-  name = var.github_repository_contents.name
-}
+# data "github_repository" "repo" {
+#   name = var.github_repository_contents.name
+# }
 
-data "github_branch" "branch" {
-  repository = data.github_repository.repo.name
-  branch     = var.github_repository_contents.branch == null ? data.github_repository.repo.default_branch : var.github_repository_contents.branch
-}
+# data "github_branch" "branch" {
+#   repository = data.github_repository.repo.name
+#   branch     = var.github_repository_contents.branch == null ? data.github_repository.repo.default_branch : var.github_repository_contents.branch
+# }
 
-data "github_tree" "tree" {
-  recursive  = true
-  repository = data.github_repository.repo.name
-  tree_sha   = data.github_branch.branch.sha
-}
+# data "github_tree" "tree" {
+#   recursive  = true
+#   repository = data.github_repository.repo.name
+#   tree_sha   = data.github_branch.branch.sha
+# }
 
-locals {
-  tree_files = { for i in data.github_tree.tree.entries : i.sha => i }
-}
+# locals {
+#   tree_files = { for i in data.github_tree.tree.entries : i.sha => i }
+# }
 
-data "github_repository_file" "file" {
-  for_each = local.tree_files
+# data "github_repository_file" "file" {
+#   for_each = local.tree_files
 
-  repository = data.github_repository.repo.name
-  branch     = data.github_branch.branch.ref
-  file       = each.value.path
-}
+#   repository = data.github_repository.repo.name
+#   branch     = data.github_branch.branch.ref
+#   file       = each.value.path
+# }
 
-locals {
-  file_contents = {
-    for k, v in data.github_repository_file.file : k => {
-      content = v.content
-      path    = local.tree_files[k].path
-    } if local.tree_files[k].type == "blob" && !startswith(local.tree_files[k].path, ".")
-  }
-}
+# locals {
+#   file_contents = {
+#     for k, v in data.github_repository_file.file : k => {
+#       content = v.content
+#       path    = local.tree_files[k].path
+#     } if local.tree_files[k].type == "blob" && !startswith(local.tree_files[k].path, ".")
+#   }
+# }
 
-resource "local_file" "files" {
-  for_each = local.file_contents
+# resource "local_file" "files" {
+#   for_each = local.file_contents
 
-  filename = "${path.cwd}/${each.value.path}"
-  content  = each.value.content
-}
+#   filename = "${path.cwd}/${each.value.path}"
+#   content  = each.value.content
+# }
 
 resource "aws_ecr_repository" "lambda" {
   name                 = var.ecr_repository_name

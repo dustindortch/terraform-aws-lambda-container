@@ -26,13 +26,13 @@ variable "ecr_registry_id" {
   type        = string
 }
 
-variable "github_repository_contents" {
-  description = "The GitHub repository release to use for the application code."
-  type = object({
-    name   = string
-    branch = optional(string, null)
-  })
-}
+# variable "github_repository_contents" {
+#   description = "The GitHub repository release to use for the application code."
+#   type = object({
+#     name   = string
+#     branch = optional(string, null)
+#   })
+# }
 
 variable "handler" {
   description = "The AWS Lambda handler to invoke within the container image."
