@@ -97,7 +97,11 @@ module "docker" {
   source  = "app.terraform.io/DustinDortch/aws-lambda/docker"
   version = "~> 1.0"
 
-  name    = aws_ecr_repository.lambda.repository_url
+  name = aws_ecr_repository.lambda.repository_url
+  build = {
+    context    = ".."
+    dockerfile = "../Dockerfile"
+  }
   handler = var.handler
   path    = var.path
 
